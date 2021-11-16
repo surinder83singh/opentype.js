@@ -7,6 +7,11 @@
     <!-- Note that the internal development server rewrites the JavaScript URL below to build/opentype.js -->
     <script type="text/javascript" src="dist/opentype.js"></script>
     <link rel="stylesheet" href="site.css">
+    <style>
+        .wrapper{margin:0px;border-width:1px 1px 0 0;border-color:#FFF}
+        .wrapper span{display:none;}
+        .hide{display:none;}
+    </style>
 </head>
 <body>
 <div class="header">
@@ -37,14 +42,14 @@
     <div id="message"></div>
     <input type="text" class="text-input" onkeyup="renderText()" value="Hello, World!"
            autofocus id="textField">
-    <label>Font Size<input type="range" min="6" max="500" step="2" value="150" id="font-size-range" autocomplete="off"><span id="fontSize">150</span></label>
-    <label><input type="checkbox" onchange="drawPointsChanged(this)" checked="checked">Draw Points</label>
+    <label>Font Size<input type="range" min="20" max="500" step="2" value="10" id="font-size-range" autocomplete="off"><span id="fontSize">150</span></label>
+    <label><input type="checkbox" onchange="drawPointsChanged(this)">Draw Points</label>
     <label><input type="checkbox" onchange="drawMetricsChanged(this)">Draw Metrics</label>
     <label><input type="checkbox" onchange="kerningChanged(this)" checked="checked">Kerning</label>
     <label><input type="checkbox" onchange="ligaturesChanged(this)" checked="checked">Ligatures</label>
     <label id="hinting-label" class="disabled"><input id="hinting-checkbox" type="checkbox" onchange="hintingChanged(this)" disabled="true">Hinting</label>
 
-    <hr>
+    <!--hr>
 
     <div class="explain">
         Once you have the shapes, you can modify them, for example by <strong>snapping</strong> them to a virtual grid:
@@ -56,7 +61,7 @@
     <label>X<input type="range" min="-100" max="100" value="0" oninput="snapXChanged(this)"/><span id="snapX">0</span></label>
     <label>Y<input type="range" min="-100" max="100" value="0" oninput="snapYChanged(this)"/><span id="snapY">0</span></label>
 
-    <hr>
+    <hr-->
 
     <div class="explain">
         <h1>Glyphs</h1>
@@ -80,10 +85,17 @@
 
 
 <script type="text/javascript">
+    function qS(selector){
+        return document.querySelector(selector)
+    }
 var font = null;
-var fontSize = 150;
-var textToRender = "Hello, World!";
-var drawPoints = true;
+var fontSize = 28;
+var textToRender = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`~!@#$%^&*()-_+={}[]:;"'+"'"+'<>,.?/\\|';
+qS('#textField').value = textToRender;
+qS('#font-size-range').value = fontSize;
+qS('#fontSize').innerHTML = fontSize;
+
+var drawPoints = false;
 var drawMetrics = false;
 var kerning = true;
 var ligatures = true;
@@ -179,9 +191,10 @@ function doSnap(path) {
 }
 
 function renderText() {
-    if (!font) return;
-    textToRender = document.getElementById('textField').value;
-    var previewCtx = document.getElementById('preview').getContext('2d');
+    if (!font)
+        return;
+    textToRender = qS('#textField').value;
+    var previewCtx = qS('#preview').getContext('2d');
     var options = {
         kerning: kerning,
         hinting: hinting,
@@ -192,18 +205,22 @@ function renderText() {
     };
     previewCtx.clearRect(0, 0, 940, 300);
     font.draw(previewCtx, textToRender, 0, 200, fontSize, options);
+    _onFontLoaded(font);
+    /*
     if (drawPoints) {
         font.drawPoints(previewCtx, textToRender, 0, 200, fontSize, options);
     }
     if (drawMetrics) {
         font.drawMetrics(previewCtx, textToRender, 0, 200, fontSize, options);
     }
-
+    */
+    /*
     snapPath = font.getPath(textToRender, 0, 200, fontSize, options);
     doSnap(snapPath);
     var snapCtx = document.getElementById('snap').getContext('2d');
     snapCtx.clearRect(0, 0, 940, 300);
     snapPath.draw(snapCtx);
+    */
 }
 
 function enableHighDPICanvas(canvas) {
@@ -223,10 +240,10 @@ function enableHighDPICanvas(canvas) {
 
 // Create a canvas and adds it to the document.
 // Returns the 2d drawing context.
-function createGlyphCanvas(glyph, size) {
+function createGlyphCanvas(info, width, height, cls='') {
     var canvasId, html, glyphsDiv, wrap, canvas, ctx, pixelRatio;
-    canvasId = 'c' + glyph.index;
-    html = '<div class="wrapper" style="width:' + size + 'px"><canvas id="' + canvasId + '" width="' + size + '" height="' + size + '"></canvas><span>' + glyph.index + '</span></div>';
+    canvasId = 'c' + info.id;
+    html = '<div class="wrapper '+cls+'" style="width:' + width + 'px"><canvas id="' + canvasId + '" width="' + width + '" height="' + height + '"></canvas><span>' + info.title + '</span></div>';
     glyphsDiv = document.getElementById('glyphs');
     wrap = document.createElement('div');
     wrap.innerHTML = html;
@@ -247,7 +264,7 @@ function showErrorMessage(message) {
     el.innerHTML = message;
 }
 
-function onFontLoaded(font) {
+function _onFontLoaded(font) {
     var glyphsDiv, i, x, y, fontSize;
     window.font = font;
 
@@ -256,17 +273,115 @@ function onFontLoaded(font) {
     glyphsDiv.innerHTML = '';
 
     amount = Math.min(100, font.glyphs.length);
-    x = 50;
-    y = 120;
-    fontSize = 72;
-    for (i = 0; i < amount; i++) {
-        glyph = font.glyphs.get(i);
-        ctx = createGlyphCanvas(glyph, 150);
-        glyph.draw(ctx, x, y, fontSize);
-        glyph.drawPoints(ctx, x, y, fontSize);
-        glyph.drawMetrics(ctx, x, y, fontSize);
-    }
+    x = 0;
+    
+    fontSize = 4;
+    y = 4;
+    //font.draw(previewCtx, textToRender, 0, 200, fontSize, options);
+    let chars = textToRender.split(""), id;
+    let width = fontSize+4, height = 6, sample_size = 1;
+    let h,w;
+    let pr = window.devicePixelRatio||1;
+    console.log("pixelArr", width*pr, height*pr)
+    let str = "\n";
+    let num_bytes={}, chars_bytes = {}, spec_chars={};
+    chars.forEach(c=>{
+        //glyph = font.glyphs.get(i);
+        if(/[a-zA-Z0-9]/.test(c)){
+            id = c
+        }else{
+            id = (Math.random()*10000).toFixed(0)
+        }
 
+        /*if(/[wMN]/.test(c)){
+            h = height;
+            w = width-2;
+        }else if(/[Um]/.test(c)){
+            h = height;
+            w = width-3;
+        }else if(/[@%]/.test(c)){
+            h = height;
+            w = width;
+        }else{*/
+            h = height-2;
+            w = width-4;
+        //}
+
+        ctx = createGlyphCanvas({id, title:c}, w, h, 'hide');
+        //glyph.draw(ctx, x, y, fontSize);
+        font.draw(ctx, c, x, y, fontSize);//, options);
+        //let data = ctx.getImageData(0, 0, w, h)
+        //console.log("data", data)
+        
+        var pixelArr = ctx.getImageData(0, 0, w*pr, h*pr).data;
+        //console.log("pixelArr", w*pr, h*pr, pixelArr)
+        let pixels = [];
+        for (let p = 0; p < pixelArr.length; p+=4) {
+            if(!pixelArr[p+3]){
+                pixels.push(0)
+            }else{
+                pixels.push(1)
+            }
+        }
+
+        //console.log("pixels", pixels)
+        let count=0;
+        let bytes = []
+        pixels.forEach(p=>{
+            str += p;
+            if(!bytes[count]){
+                bytes[count] = ''
+            }
+            bytes[count] += p
+            count++;
+            if(count==w*pr){
+                count=0;
+                str +="\n"
+            }
+        })
+        let map = chars_bytes;
+        if(/[0-9]/.test(c)){
+            map = num_bytes;
+        }else if(/[a-z]/i.test(c)){
+            map = chars_bytes;
+        }else{
+            map = spec_chars;
+        }
+        map[c] = bytes.map(str=>parseInt(str.split("").reverse().join(""), 2))
+        //console.log("bytes", bytes)
+
+        str +="\n"
+
+        ctx = createGlyphCanvas({id:id+"_", title:c}, w*pr, h*pr);
+
+        let xx=0, yy=0;
+        pixels.forEach(p=>{
+            ctx.fillStyle = p?'#000':'#fff';
+            ctx.fillRect(xx, yy, 1, 1);
+            xx++;
+            if(xx==w*pr){
+                xx=0;
+                yy++;
+            }
+        })
+
+        
+        /*
+        for (let y = 0; y < h; y += sample_size) {
+            for (let x = 0; x < w; x += sample_size) {
+                let p = (x + (y*w)) * 4;
+                ctx.fillStyle = "rgba(" + pixelArr[p] + "," + pixelArr[p + 1] + "," + pixelArr[p + 2] + "," + pixelArr[p + 3] + ")";
+                ctx.fillRect(x, y, sample_size, sample_size);
+            }
+        }
+        */
+        //glyph.drawPoints(ctx, x, y, fontSize);
+        //glyph.drawMetrics(ctx, x, y, fontSize);
+    })
+    //console.log(str)
+    printTS('num_bytes', num_bytes)
+    printTS('chars_bytes', chars_bytes)
+    printTS('spec_chars', spec_chars)
     if (font.hinting) {
         hintingCheckbox.disabled = false;
         hintingLabel.className = '';
@@ -275,7 +390,22 @@ function onFontLoaded(font) {
         hintingCheckbox.checked = false;
         hintingLabel.className = 'disabled';
     }
+}
 
+function printTS(name, list){
+    let json = JSON.stringify(list, null)
+        .replace(/\],/g, '],\n')
+        .replace(/"\{"/g, '_0_')
+        .replace(/"\}"/g, '_1_')
+        .replace(/\{/g, '{\n')
+        .replace(/\}/g, '\n}\n')
+        .replace('_0_', '"{"')
+        .replace('_1_', '"}"')
+
+    console.log(`let ${name}:{[index:string]:number:[]} = `+ json)
+}
+function onFontLoaded(font) {
+    _onFontLoaded(font);
     renderText();
 }
 
@@ -299,7 +429,7 @@ function onReadFile(e) {
     reader.readAsArrayBuffer(file);
 }
 
-var fontFileName = 'fonts/FiraSansMedium.woff';
+var fontFileName = 'fonts/PressStart2P-Regular.ttf';
 
 document.getElementById('font-name').innerHTML = fontFileName.split('/')[1];
 
@@ -312,7 +442,7 @@ fontSizeSlider.addEventListener('input', fontSizeChanged, false);
 fontSizeSlider.addEventListener('change', fontSizeChanged, false);
 
 enableHighDPICanvas('preview');
-enableHighDPICanvas('snap');
+//enableHighDPICanvas('snap');
 
 opentype.load(fontFileName, function(err, font) {
     var amount, glyph, ctx, x, y, fontSize;
